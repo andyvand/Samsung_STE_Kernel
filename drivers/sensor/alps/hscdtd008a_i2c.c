@@ -356,17 +356,18 @@ int hscd_get_magnetic_field_data(int *xyz)
 }
 EXPORT_SYMBOL(hscd_get_magnetic_field_data);
 
-void hscd_activate(int flgatm, int flg, int dtime)
+int hscd_activate(int flgatm, int flg, int dtime)
 {
 	u8 buf[2];
 	int Ena = atomic_read(&flgEna);
 
 	if (this_client == NULL)
-		return;
+		return -EFAULT;
+
 	else if ((atomic_read(&delay) == dtime)
 				&& (atomic_read(&flgEna) == flg)
 				&& (flgatm == 1))
-		return;
+		return -EFAULT;
 
 	alps_info("is called\n");
 
@@ -398,6 +399,8 @@ void hscd_activate(int flgatm, int flg, int dtime)
 		atomic_set(&flgEna, flg);
 		atomic_set(&delay, dtime);
 	}
+
+	return 0;
 }
 EXPORT_SYMBOL(hscd_activate);
 /*

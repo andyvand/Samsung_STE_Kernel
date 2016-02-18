@@ -31,7 +31,7 @@
 
 extern int accsns_get_acceleration_data(int *xyz);
 extern int hscd_get_magnetic_field_data(int *xyz);
-extern void hscd_activate(int flgatm, int flg, int dtime);
+extern int hscd_activate(int flgatm, int flg, int dtime);
 extern void accsns_activate(int flgatm, int flg, int dtime);
 extern int hscd_self_test_A(void);
 extern int hscd_self_test_B(void);

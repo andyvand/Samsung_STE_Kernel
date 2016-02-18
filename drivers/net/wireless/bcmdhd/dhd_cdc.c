@@ -692,6 +692,7 @@ dhd_wlfc_hanger_create(osl_t *osh, int max_items)
 	for (i = 0; i < hanger->max_items; i++) {
 		hanger->items[i].state = WLFC_HANGER_ITEM_STATE_FREE;
 	}
+
 	return hanger;
 }
 

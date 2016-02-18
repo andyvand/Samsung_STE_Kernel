@@ -201,12 +201,13 @@ void ux500_ci_dbg_console_check_uart(void)
 
 void ux500_ci_dbg_console(void)
 {
-	unsigned long flags;
+	unsigned long flags = 0;
 
 	if (!dbg_console_enable)
 		return;
 
 	spin_lock_irqsave(&console_lock, flags);
+
 	if (reset_timer) {
 		reset_timer = false;
 		spin_unlock_irqrestore(&console_lock, flags);
@@ -220,6 +221,7 @@ void ux500_ci_dbg_console(void)
 		spin_unlock_irqrestore(&console_lock, flags);
 	}
 }
+
 EXPORT_SYMBOL(ux500_ci_dbg_console);
 
 static void dbg_cpuidle_work_function(struct work_struct *work)
@@ -487,9 +489,16 @@ void ux500_ci_dbg_log_post_mortem(int ctarget,
 
 }
 #else
+void ux500_ci_dbg_cobsole(void)
+{
+}
+
+EXPORT_SYMBOL(ux500_ci_dbg_console);
+
 void ux500_ci_dbg_wake_time(ktime_t time_wake)
 {
 }
+
 void ux500_ci_dbg_log_post_mortem(ktime_t enter_time, ktime_t est_wake_common,
 				  ktime_t est_wake, int sleep, bool is_last)
 {

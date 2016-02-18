@@ -333,6 +333,9 @@ static inline void ipv6_addr_set(struct in6_addr *addr,
 static inline int ipv6_addr_equal(const struct in6_addr *a1,
 				  const struct in6_addr *a2)
 {
+	if ((a1 == NULL) || (a2 == NULL))
+		return 0;
+
 	return ((a1->s6_addr32[0] ^ a2->s6_addr32[0]) |
 		(a1->s6_addr32[1] ^ a2->s6_addr32[1]) |
 		(a1->s6_addr32[2] ^ a2->s6_addr32[2]) |

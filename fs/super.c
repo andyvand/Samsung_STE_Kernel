@@ -569,6 +569,7 @@ int do_remount_sb(struct super_block *sb, int flags, void *data, int force)
 	if (flags & MS_RDONLY)
 		acct_auto_close(sb);
 	shrink_dcache_sb(sb);
+	sync_filesystem(sb);
 
 	remount_ro = (flags & MS_RDONLY) && !(sb->s_flags & MS_RDONLY);
 
@@ -580,8 +581,6 @@ int do_remount_sb(struct super_block *sb, int flags, void *data, int force)
 		else if (!fs_may_remount_ro(sb))
 			return -EBUSY;
 	}
-
-	sync_filesystem(sb);
 
 	if (sb->s_op->remount_fs) {
 		retval = sb->s_op->remount_fs(sb, &flags, data);
@@ -616,12 +615,13 @@ static void do_emergency_remount(struct work_struct *work)
 		down_write(&sb->s_umount);
 		if (sb->s_root && sb->s_bdev && !(sb->s_flags & MS_RDONLY)) {
 			/* u8500: param.ko needs to update params.blk before rebooting */
-			if (strcmp(sb->s_id, "mmcblk0p1")) {
-				/*
-				 * What lock protects sb->s_flags??
-				 */
-				do_remount_sb(sb, MS_RDONLY, NULL, 1);
-			}
+                        if (strcmp(sb->s_id, "mmcblk0p1") !=0)
+                        /*
+			 * What lock protects sb->s_flags??
+			 */
+			do_remount_sb(sb, MS_RDONLY, NULL, 1);
+                    else
+                         printk("Skipping read-only remount of mmcblk0p1\n");
 		}
 		up_write(&sb->s_umount);
 		spin_lock(&sb_lock);

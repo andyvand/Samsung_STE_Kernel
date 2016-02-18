@@ -220,10 +220,8 @@ static void ab8500_usb_load(struct work_struct *work)
 	if ((num_irqs > old_num_irqs) &&
 		(num_irqs - old_num_irqs) > USB_LIMIT) {
 
-		/*
 		prcmu_qos_update_requirement(PRCMU_QOS_ARM_KHZ,
 					     "usb", 1000000);
-		*/
 		if (!usb_pm_qos_is_latency_0) {
 
 			pm_qos_add_request(&usb_pm_qos_latency,
@@ -237,10 +235,9 @@ static void ab8500_usb_load(struct work_struct *work)
 				pm_qos_remove_request(&usb_pm_qos_latency);
 				usb_pm_qos_is_latency_0 = false;
 		}
-		/*
+
 		prcmu_qos_update_requirement(PRCMU_QOS_ARM_KHZ,
 					     "usb", PRCMU_QOS_DEFAULT_VALUE);
-		*/
 	}
 	old_num_irqs = num_irqs;
 
@@ -1320,7 +1317,6 @@ static int __devexit ab8500_usb_remove(struct platform_device *pdev)
 		blocking_notifier_chain_unregister(&micro_usb_switch_notifier,
 				&ab->usb_nb);
 
-	sysfs_remove_group(&ab->dev->kobj, &ab8500_attr_group);
 	kfree(ab);
 
 	return 0;

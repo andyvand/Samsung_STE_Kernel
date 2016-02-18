@@ -55,6 +55,7 @@ static unsigned char *image_buf = NULL;
 static int load_lfs_param_value(void);
 static int save_lfs_param_value(void);
 
+#if 0
 static int param_check(unsigned char *addr)
 {
 	status_t 		*status;
@@ -69,6 +70,7 @@ static int param_check(unsigned char *addr)
 	klogi("Checking PARAM... Invalid");
 	return -1;
 }
+#endif
 
 static status_t param_status;
 
@@ -460,6 +462,5 @@ static int save_lfs_param_value(void)
 
 	return 0;
 }
-
 
 

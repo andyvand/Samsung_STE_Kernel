@@ -22,7 +22,6 @@
 #include <linux/tick.h>
 #include <linux/ktime.h>
 #include <linux/sched.h>
-#include <linux/u8500_hotplug.h>
 
 /*
  * dbs is used in this file as a shortform for demandbased switching
@@ -146,12 +145,10 @@ static inline cputime64_t get_cpu_idle_time_jiffy(unsigned int cpu,
 
 static inline cputime64_t get_cpu_idle_time(unsigned int cpu, cputime64_t *wall)
 {
-	u64 idle_time = get_cpu_idle_time_us(cpu, NULL);
+	u64 idle_time = get_cpu_idle_time_us(cpu, wall);
 
 	if (idle_time == -1ULL)
 		return get_cpu_idle_time_jiffy(cpu, wall);
-	else
-		idle_time += get_cpu_iowait_time_us(cpu, wall);
 
 	return idle_time;
 }
@@ -432,7 +429,6 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 	unsigned int max_load_freq;
 	struct cpufreq_policy *policy;
 	unsigned int j;
-	bool boosted = ktime_to_us(ktime_get()) < (last_input_time + input_boost_ms * 1000);
 
 	this_dbs_info->freq_lo = 0;
 	policy = this_dbs_info->cur_policy;
@@ -524,13 +520,6 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			this_dbs_info->rate_mult =
 				dbs_tuners_ins.sampling_down_factor;
 		dbs_freq_increase(policy, policy->max);
-		return;
-	}
-
-	if (boosted) {
-		if (policy->cur < input_boost_freq)
-			dbs_freq_increase(policy, input_boost_freq);
-
 		return;
 	}
 

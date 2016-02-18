@@ -1,3 +1,5 @@
+
+
 /*
  *
  * Zinitix bt404 touchscreen driver
@@ -19,8 +21,8 @@
 /* #define TSP_VERBOSE_DEBUG */
 #define TSP_FACTORY
 
-/* #define TOUCH_BOOSTER */
-#define DISABLE_TOUCHSCREEN_SPAM
+#define TOUCH_BOOSTER
+#define TOUCH_S2W
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -52,6 +54,9 @@
 #endif
 #if defined(TOUCH_BOOSTER)
 #include <linux/mfd/dbx500-prcmu.h>
+#endif
+#ifdef TOUCH_S2W
+#include <linux/ab8500-ponkey.h>
 #endif
 #include <linux/input/bt404_ts.h>
 #include "zinitix_touch_bt4x3_firmware.h"
@@ -395,6 +400,42 @@ struct tsp_cmd {
 	const char		*cmd_name;
 	void			(*cmd_func)(void *device_data);
 };
+
+#ifdef TOUCH_S2W
+/* cocafe: SweepToWake with wakelock implementation */
+#define ABS_THRESHOLD_X			120
+#define ABS_THRESHOLD_Y			240
+
+#if CONFIG_HAS_WAKELOCK
+#include <linux/wakelock.h>
+static struct wake_lock s2w_wakelock;
+#endif
+
+static int x_press, x_release;
+static int y_press, y_release;
+
+static int x_threshold = ABS_THRESHOLD_X;
+static int y_threshold = ABS_THRESHOLD_Y;
+
+static bool is_suspend = false;
+static bool waking_up = false;
+
+static bool sweep2wake = false;
+
+static void bt404_ponkey_thread(struct work_struct *bt404_ponkey_work)
+{
+	waking_up = true;
+
+	ab8500_ponkey_emulator(1);	/* press */
+
+	msleep(100);
+
+	ab8500_ponkey_emulator(0);	/* release */
+	
+	waking_up = false;
+}
+static DECLARE_WORK(bt404_ponkey_work, bt404_ponkey_thread);
+#endif
 
 static void fw_update(void *device_data);
 static void get_fw_ver_bin(void *device_data);
@@ -1482,11 +1523,11 @@ static void bt404_ts_report_touch_data(struct bt404_ts_data *data,
 	if (force_clear) {
 		for (i = 0; i < data->cap_info.max_finger; i++) {
 			if (prev->coord[i].sub_status & 0x1) {
-				// dev_info(&client->dev,
-				// 		"%4s[%1d]: %3d,%3d (%3d)\n",
-				// 		"up/f", i, cur->coord[i].x,
-				// 		cur->coord[i].x,
-				// 		cur->coord[i].width);
+				dev_info(&client->dev,
+						"%4s[%1d]: %3d,%3d (%3d)\n",
+						"up/f", i, cur->coord[i].x,
+						cur->coord[i].x,
+						cur->coord[i].width);
 				prev->coord[i].sub_status &= ~(0x01);
 			}
 
@@ -1528,12 +1569,28 @@ static void bt404_ts_report_touch_data(struct bt404_ts_data *data,
 		if (prev_exist && cur_up) {
 
 #if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
-#ifndef DISABLE_TOUCHSCREEN_SPAM
 			dev_info(&client->dev, "%4s[%1d]: %3d,%3d (%3d)\n",
 					"up", i, cur->coord[i].x,
 					cur->coord[i].x, cur->coord[i].width);
 #endif
+
+#ifdef TOUCH_S2W
+			/* Release */
+			if (is_suspend) {
+				if (sweep2wake) {
+					if (cur_up) {
+						x_release = cur->coord[0].x;
+						y_release = cur->coord[0].y;
+						if ((abs(x_release - x_press) >= x_threshold) ||
+							(abs(y_release - y_press) >= y_threshold)) {
+								if (!waking_up)
+									schedule_work(&bt404_ponkey_work);
+						}
+					}
+				}
+			}
 #endif
+
 			prev->coord[i].sub_status &= ~(0x01);
 
 			input_mt_slot(data->input_dev_ts, i);
@@ -1587,14 +1644,22 @@ static void bt404_ts_report_touch_data(struct bt404_ts_data *data,
 				data->finger_cnt++;
 #endif
 
+#ifdef TOUCH_S2W
+				/* Press */
+				if (is_suspend) {
+					if (sweep2wake) {
+						x_press = cur->coord[0].x;
+						y_press = cur->coord[0].y;
+					}
+				}
+#endif
+
 #if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
-#ifndef DISABLE_TOUCHSCREEN_SPAM
 				dev_info(&client->dev,
 						"%4s[%1d]: %3d,%3d (%3d)\n",
 						"down", i,  cur->coord[i].x,
 						cur->coord[i].y,
 						cur->coord[i].width);
-#endif
 #endif
 			}
 
@@ -1780,11 +1845,9 @@ static irqreturn_t bt404_ts_interrupt(int irq, void *dev_id)
 			input_report_key(data->input_dev_tk,
 				data->pdata->button_map[offset], action);
 #if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
-#ifndef DISABLE_TOUCHSCREEN_SPAM
 			dev_info(&client->dev, "key[%3d]:%s\n",
 						data->pdata->button_map[offset],
 						(action) ? "down" : "up");
-#endif
 #endif
 		}
 
@@ -1803,11 +1866,9 @@ static irqreturn_t bt404_ts_interrupt(int irq, void *dev_id)
 			input_report_key(data->input_dev_tk,
 				data->pdata->button_map[offset], action);
 #if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
-#ifndef DISABLE_TOUCHSCREEN_SPAM
 			dev_info(&client->dev, "key[%3d]:%s\n",
 						data->pdata->button_map[offset],
 						(action) ? "down" : "up");
-#endif
 #endif
 		}
 
@@ -3787,6 +3848,107 @@ static struct attribute_group touchscreen_temp_attr_group = {
 	.attrs = touchscreen_temp_attributes,
 };
 
+#ifdef TOUCH_S2W
+static ssize_t bt404_sweep2wake_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	sprintf(buf, "status: %s\n", sweep2wake ? "on" : "off");
+	sprintf(buf, "%sthreshold_x: %d\n", buf, x_threshold);
+	sprintf(buf, "%sthreshold_y: %d\n", buf, y_threshold);
+	#if CONFIG_HAS_WAKELOCK
+	sprintf(buf, "%swakelock_ena: %d\n", buf, wake_lock_active(&s2w_wakelock));
+	#endif
+
+	return strlen(buf);
+}
+
+static ssize_t bt404_sweep2wake_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	int threshold_tmp;
+
+	if (!strncmp(buf, "on", 2)) {
+		sweep2wake = true;
+
+		#if CONFIG_HAS_WAKELOCK
+		wake_lock(&s2w_wakelock);
+		#endif
+
+		pr_err("[TSP] Sweep2Wake On\n");
+
+		return count;
+	}
+
+	if (!strncmp(buf, "off", 3)) {
+		sweep2wake = false;
+
+		#if CONFIG_HAS_WAKELOCK
+		wake_unlock(&s2w_wakelock);
+		#endif
+
+		pr_err("[TSP] Sweep2Wake Off\n");
+
+		return count;
+	}
+
+	if (!strncmp(&buf[0], "threshold_x=", 12)) {
+		ret = sscanf(&buf[12], "%d", &threshold_tmp);
+
+		if ((!ret) || (threshold_tmp > 480)) {
+			pr_err("[TSP] invalid input\n");
+			return -EINVAL;
+		}
+
+		x_threshold = threshold_tmp;
+		
+		return count;
+	}
+
+	if (!strncmp(&buf[0], "threshold_y=", 12)) {
+		ret = sscanf(&buf[12], "%d", &threshold_tmp);
+
+		if ((!ret) || (threshold_tmp > 800)) {
+			pr_err("[TSP] invalid input\n");
+			return -EINVAL;
+		}
+
+		y_threshold = threshold_tmp;
+		
+		return count;
+	}
+
+	#if CONFIG_HAS_WAKELOCK
+	/* For development activity */
+	if (!strncmp(&buf[0], "wakelock=", 9)) {
+		sscanf(&buf[9], "%d", &ret);
+
+		if (!ret)
+			wake_unlock(&s2w_wakelock);
+		else
+			wake_lock(&s2w_wakelock);
+		
+		return count;
+	}
+	#endif
+		
+	return count;
+}
+
+static struct kobj_attribute bt404_sweep2wake_interface = __ATTR(sweep2wake, 0644, bt404_sweep2wake_show, bt404_sweep2wake_store);
+#endif
+
+static struct attribute *bt404_attrs[] = {
+#ifdef TOUCH_S2W
+	&bt404_sweep2wake_interface.attr, 
+#endif
+	NULL,
+};
+
+static struct attribute_group bt404_interface_group = {
+	.attrs = bt404_attrs,
+};
+
+static struct kobject *bt404_kobject;
+
 static int bt404_ts_probe(struct i2c_client *client,
 					const struct i2c_device_id *i2c_id)
 {
@@ -4032,6 +4194,22 @@ static int bt404_ts_probe(struct i2c_client *client,
 	prcmu_qos_add_requirement(PRCMU_QOS_ARM_KHZ, (char *)client->name,
 				  PRCMU_QOS_DEFAULT_VALUE);
 	dev_info(&client->dev, "add_prcmu_qos is added\n");
+#endif
+
+	bt404_kobject = kobject_create_and_add("bt404", kernel_kobj);
+
+	if (!bt404_kobject) {
+		return -ENOMEM;
+	}
+
+	ret = sysfs_create_group(bt404_kobject, &bt404_interface_group);
+
+	if (ret) {
+		kobject_put(bt404_kobject);
+	}
+
+#ifdef TOUCH_S2W
+	wake_lock_init(&s2w_wakelock, WAKE_LOCK_SUSPEND, "s2w_wakelock");
 #endif
 
 	data->irq = client->irq;
@@ -4325,6 +4503,10 @@ static int bt404_ts_suspend(struct device *dev)
 		goto out;
 	}
 
+#ifdef TOUCH_S2W
+	if (sweep2wake)
+		goto out;
+#endif
 	disable_irq(data->irq);
 	data->enabled = false;
 
@@ -4371,6 +4553,11 @@ static int bt404_ts_resume(struct device *dev)
 		goto out;
 	}
 
+#ifdef TOUCH_S2W
+	if (sweep2wake)
+		goto out;
+#endif
+
 	data->pdata->int_set_pull(true);
 	data->enabled = true;
 
@@ -4404,6 +4591,10 @@ static void bt404_ts_late_resume(struct early_suspend *h)
 {
 	struct bt404_ts_data *data =
 			container_of(h, struct bt404_ts_data, early_suspend);
+#ifdef TOUCH_S2W
+	is_suspend = 0;
+#endif
+
 	bt404_ts_resume(&data->client->dev);
 }
 
@@ -4411,6 +4602,9 @@ static void bt404_ts_early_suspend(struct early_suspend *h)
 {
 	struct bt404_ts_data *data =
 			container_of(h, struct bt404_ts_data, early_suspend);
+#ifdef TOUCH_S2W
+	is_suspend = 1;
+#endif
 	bt404_ts_suspend(&data->client->dev);
 }
 

@@ -933,7 +933,8 @@ bcmstricmp(const char *s1, const char *s2)
 int
 bcmstrnicmp(const char* s1, const char* s2, int cnt)
 {
-	char dc, sc;
+	char dc=0;
+	char sc=0;
 
 	while (*s2 && *s1 && cnt) {
 		dc = xToLower(*s1);
@@ -956,12 +957,14 @@ int
 bcm_ether_atoe(const char *p, struct ether_addr *ea)
 {
 	int i = 0;
-	char *ep;
+	char *ep=NULL;
 
-	for (;;) {
+	for (;;)
+	{
 		ea->octet[i++] = (char) bcm_strtoul(p, &ep, 16);
 		p = ep;
-		if (!*p++ || i == 6)
+
+		if ((!*p++) || (i == 6))
 			break;
 	}
 

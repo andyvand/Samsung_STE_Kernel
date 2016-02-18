@@ -2243,13 +2243,10 @@ static int ext4_remove_blocks(handle_t *handle, struct inode *inode,
 				ext4_lblk_t from, ext4_lblk_t to)
 {
 	unsigned short ee_len =  ext4_ext_get_actual_len(ex);
-	int flags = 0;
+	int flags = EXT4_FREE_BLOCKS_FORGET;
 
 	if (S_ISDIR(inode->i_mode) || S_ISLNK(inode->i_mode))
-		flags |= EXT4_FREE_BLOCKS_METADATA | EXT4_FREE_BLOCKS_FORGET;
-	else if (ext4_should_journal_data(inode))
-		flags |= EXT4_FREE_BLOCKS_FORGET;
-
+		flags |= EXT4_FREE_BLOCKS_METADATA;
 #ifdef EXTENTS_STATS
 	{
 		struct ext4_sb_info *sbi = EXT4_SB(inode->i_sb);
@@ -2488,10 +2485,6 @@ ext4_ext_rm_leaf(handle_t *handle, struct inode *inode,
 		if (uninitialized && num)
 			ext4_ext_mark_uninitialized(ex);
 
-		err = ext4_ext_dirty(handle, inode, path + depth);
-		if (err)
-			goto out;
-
 		/*
 		 * If the extent was completely released,
 		 * we need to remove it from the leaf
@@ -2512,6 +2505,10 @@ ext4_ext_rm_leaf(handle_t *handle, struct inode *inode,
 			}
 			le16_add_cpu(&eh->eh_entries, -1);
 		}
+
+		err = ext4_ext_dirty(handle, inode, path + depth);
+		if (err)
+			goto out;
 
 		ext_debug("new extent: %u:%u:%llu\n", block, num,
 				ext4_ext_pblock(ex));

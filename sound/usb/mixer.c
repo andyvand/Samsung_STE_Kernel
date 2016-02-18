@@ -1456,7 +1456,7 @@ static int parse_audio_mixer_unit(struct mixer_build *state, int unitid, void *r
 static int mixer_ctl_procunit_get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
 	struct usb_mixer_elem_info *cval = kcontrol->private_data;
-	int err, val = 0;
+	int err, val;
 
 	err = get_cur_ctl_value(cval, cval->control << 8, &val);
 	if (err < 0 && cval->mixer->ignore_ctl_error) {
@@ -1474,7 +1474,7 @@ static int mixer_ctl_procunit_get(struct snd_kcontrol *kcontrol, struct snd_ctl_
 static int mixer_ctl_procunit_put(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
 	struct usb_mixer_elem_info *cval = kcontrol->private_data;
-	int val, oval = 0, err;
+	int val, oval, err;
 
 	err = get_cur_ctl_value(cval, cval->control << 8, &oval);
 	if (err < 0) {
@@ -1737,18 +1737,24 @@ static int mixer_ctl_selector_info(struct snd_kcontrol *kcontrol, struct snd_ctl
 static int mixer_ctl_selector_get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
 	struct usb_mixer_elem_info *cval = kcontrol->private_data;
-	int val = 0, err;
+	int val = 0;
+	int err = get_cur_ctl_value(cval, cval->control << 8, &val);
 
-	err = get_cur_ctl_value(cval, cval->control << 8, &val);
-	if (err < 0) {
-		if (cval->mixer->ignore_ctl_error) {
+	if (err < 0)
+	{
+		if (cval->mixer->ignore_ctl_error)
+		{
 			ucontrol->value.enumerated.item[0] = 0;
+
 			return 0;
 		}
+
 		return err;
 	}
+
 	val = get_relative_value(cval, val);
 	ucontrol->value.enumerated.item[0] = val;
+
 	return 0;
 }
 
@@ -1756,9 +1762,10 @@ static int mixer_ctl_selector_get(struct snd_kcontrol *kcontrol, struct snd_ctl_
 static int mixer_ctl_selector_put(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
 	struct usb_mixer_elem_info *cval = kcontrol->private_data;
-	int val, oval = 0, err;
+	int val = 0;
+	int oval = 0;
+	int err = get_cur_ctl_value(cval, cval->control << 8, &oval);
 
-	err = get_cur_ctl_value(cval, cval->control << 8, &oval);
 	if (err < 0) {
 		if (cval->mixer->ignore_ctl_error)
 			return 0;
@@ -1788,7 +1795,8 @@ static struct snd_kcontrol_new mixer_selectunit_ctl = {
  */
 static void usb_mixer_selector_elem_free(struct snd_kcontrol *kctl)
 {
-	int i, num_ins = 0;
+	int i = 0;
+	int num_ins = 0;
 
 	if (kctl->private_data) {
 		struct usb_mixer_elem_info *cval = kctl->private_data;
@@ -1811,19 +1819,22 @@ static void usb_mixer_selector_elem_free(struct snd_kcontrol *kctl)
 static int parse_audio_selector_unit(struct mixer_build *state, int unitid, void *raw_desc)
 {
 	struct uac_selector_unit_descriptor *desc = raw_desc;
-	unsigned int i, nameid, len;
-	int err;
-	struct usb_mixer_elem_info *cval;
-	struct snd_kcontrol *kctl;
-	const struct usbmix_name_map *map;
-	char **namelist;
+	unsigned int i = 0, nameid = 0, len = 0;
+	int err = 0;
+	struct usb_mixer_elem_info *cval = NULL;
+	struct snd_kcontrol *kctl = NULL;
+	const struct usbmix_name_map *map = NULL;
+	char **namelist = NULL;
 
-	if (!desc->bNrInPins || desc->bLength < 5 + desc->bNrInPins) {
+	if (!desc->bNrInPins || (desc->bLength < (5 + desc->bNrInPins)))
+	{
 		snd_printk(KERN_ERR "invalid SELECTOR UNIT descriptor %d\n", unitid);
+
 		return -EINVAL;
 	}
 
-	for (i = 0; i < desc->bNrInPins; i++) {
+	for (i = 0; i < desc->bNrInPins; i++)
+	{
 		if ((err = parse_audio_unit(state, desc->baSourceID[i])) < 0)
 			return err;
 	}
@@ -1832,14 +1843,19 @@ static int parse_audio_selector_unit(struct mixer_build *state, int unitid, void
 		return 0;
 
 	map = find_map(state, unitid, 0);
+
 	if (check_ignored_ctl(map))
 		return 0;
 
 	cval = kzalloc(sizeof(*cval), GFP_KERNEL);
-	if (! cval) {
+
+	if (!cval)
+	{
 		snd_printk(KERN_ERR "cannot malloc kcontrol\n");
+
 		return -ENOMEM;
 	}
+
 	cval->mixer = state->mixer;
 	cval->id = unitid;
 	cval->val_type = USB_MIXER_U8;
@@ -1860,7 +1876,11 @@ static int parse_audio_selector_unit(struct mixer_build *state, int unitid, void
 		kfree(cval);
 		return -ENOMEM;
 	}
-#define MAX_ITEM_NAME_LEN	64
+
+#ifndef MAX_ITEM_NAME_LEN
+#define MAX_ITEM_NAME_LEN 64
+#endif
+
 	for (i = 0; i < desc->bNrInPins; i++) {
 		struct usb_audio_term iterm;
 		len = 0;

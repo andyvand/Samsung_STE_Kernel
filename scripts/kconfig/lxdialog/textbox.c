@@ -320,18 +320,21 @@ static void print_page(WINDOW * win, int height, int width)
  */
 static void print_line(WINDOW * win, int row, int width)
 {
-	int y, x;
-	char *line;
+#if OLD_NCURSES
+	int y=0, x=0;
+#endif
+	char *line = get_line();
 
-	line = get_line();
 	line += MIN(strlen(line), hscroll);	/* Scroll horizontally */
+
 	wmove(win, row, 0);	/* move cursor to correct line */
 	waddch(win, ' ');
 	waddnstr(win, line, MIN(strlen(line), width - 2));
 
-	getyx(win, y, x);
-	/* Clear 'residue' of previous line */
 #if OLD_NCURSES
+	getyx(win, y, x);
+
+	/* Clear 'residue' of previous line */
 	{
 		int i;
 		for (i = 0; i < width - x; i++)

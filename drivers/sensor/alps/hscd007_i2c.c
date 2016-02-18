@@ -303,16 +303,17 @@ int hscd_self_test_B(void)
     return 0;
 }
 
-void hscd_activate(int flgatm, int flg, int dtime)
+int hscd_activate(int flgatm, int flg, int dtime)
 {
 	u8 buf[2];
 
 	if (this_client == NULL)
-		return;
+		return -EFAULT;
+
 	else if ((atomic_read(&delay) == dtime)
 				&& (atomic_read(&flgEna) == flg)
 				&& (flgatm == 1))
-		return;
+		return -EFAULT;
 
 	alps_info("is called\n");
 
@@ -349,6 +350,8 @@ void hscd_activate(int flgatm, int flg, int dtime)
 		atomic_set(&flgEna, flg);
 		atomic_set(&delay, dtime);
 	}
+
+        return 0;
 }
 
 int hscd_get_magnetic_field_data(int *xyz)
@@ -581,16 +584,16 @@ static int hscd_probe(struct i2c_client *client,
 
 	hscd_power.regulator_vdd = hscd_power.regulator_vio = NULL;
 	hscd_power.regulator_vdd = regulator_get(&client->dev, "vdd_alps");
-	if (IS_ERR(hscd_power.regulator_vdd)) {
-		ret = PTR_ERR(hscd_power.regulator_vdd);
+	if (hscd_power.regulator_vdd == NULL) {
+		ret = (int)(hscd_power.regulator_vdd != NULL);
 		hscd_power.regulator_vdd = NULL;
 		alps_errmsg("Failed to get hscd_i2c_vdd %d\n", ret);
 		goto err_setup_regulator;
 	}
 
 	hscd_power.regulator_vio = regulator_get(&client->dev, "vio_mag");
-	if (IS_ERR(hscd_power.regulator_vio)) {
-		ret = PTR_ERR(hscd_power.regulator_vio);
+	if (hscd_power.regulator_vio == NULL) {
+		ret = (int)(hscd_power.regulator_vio != NULL);
 		hscd_power.regulator_vio = NULL;
 		alps_errmsg("Failed to get hscd_i2c_vio %d\n", ret);
 		goto err_setup_regulator;

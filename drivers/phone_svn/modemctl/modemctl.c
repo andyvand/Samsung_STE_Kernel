@@ -31,14 +31,15 @@
 #include <linux/kdev_t.h>
 #include <linux/workqueue.h>
 #include <linux/timer.h>
+#include <linux/slab.h>
 
 #include <linux/modemctl.h>
 
 #ifdef CONFIG_HAS_WAKELOCK
 #include <linux/wakelock.h>
+
 #define MODEM_CTL_DEFAULT_WAKLOCK_HZ	(2*HZ)
 #endif
-
 
 #define DRVNAME "modemctl"
 
@@ -123,11 +124,11 @@ static inline long _wake_lock_gettime(struct modemctl *mc)
 	return mc?mc->waketime:MODEM_CTL_DEFAULT_WAKLOCK_HZ;
 }
 #else
-#  define _wake_lock_init(mc) do { } while(0)
-#  define _wake_lock_destroy(mc) do { } while(0)
-#  define _wake_lock_timeout(mc) do { } while(0)
-#  define _wake_lock_settime(mc, time) do { } while(0)
-#  define _wake_lock_gettime(mc) (0)
+#define _wake_lock_init(mc)
+#define _wake_lock_destroy(mc)
+#define _wake_lock_timeout(mc)
+#define _wake_lock_settime(mc,time)
+#define _wake_lock_gettime(mc) 0
 #endif
 
 static int sim_check_status(struct modemctl *);
@@ -135,7 +136,7 @@ static int sim_get_reference_status(struct modemctl *);
 static void sim_irq_debounce_timer_func(unsigned);
 
 
-#if defined (CONFIG_TARGET_LOCALE_EUR) ||  defined (CONFIG_ARIES_EUR) || defined(CONFIG_ARIES_LATONA)
+#if defined (CONFIG_TARGET_LOCALE_EUR) ||  defined (CONFIG_ARIES_EUR) || defined(CONFIG_ARIES_LATONA) || (CONFIG_U8500_SHRM)
 static void xmm_on(struct modemctl *);
 static void xmm_off(struct modemctl *);
 static void xmm_reset(struct modemctl *);
@@ -201,7 +202,7 @@ static const struct attribute_group modemctl_group = {
 	.attrs = modemctl_attributes,
 };
 
-#if defined (CONFIG_TARGET_LOCALE_EUR) ||  defined (CONFIG_ARIES_EUR) || defined(CONFIG_ARIES_LATONA)
+#if defined (CONFIG_TARGET_LOCALE_EUR) ||  defined (CONFIG_ARIES_EUR) || defined(CONFIG_ARIES_LATONA) || (CONFIG_U8500_SHRM)
 /* declare mailbox init function for xmm */
 extern void onedram_init_mailbox(void);
 
@@ -213,8 +214,12 @@ static void xmm_on(struct modemctl *mc)
 
 	/* ensure pda active pin set to low */
 	gpio_set_value(mc->gpio_pda_active, 0);
+
+#ifdef PHONE_ONEDRAM
 	/* call mailbox init : BA goes to high, AB goes to low */
 	onedram_init_mailbox();
+#endif
+
 	/* ensure cp_reset pin set to low */
 	gpio_set_value(mc->gpio_cp_reset, 0);
 	

@@ -1,0 +1,64 @@
+drivers/phone_svn/modemctl/modemctl.c:53:1: error: expected ';', identifier or '(' before 'struct'
+ struct modemctl_ops {
+ ^
+drivers/phone_svn/modemctl/modemctl.c:54:26: warning: 'struct modemctl' declared inside parameter list
+  void (*modem_on)(struct modemctl *);
+                          ^
+drivers/phone_svn/modemctl/modemctl.c:54:26: warning: its scope is only this definition or declaration, which is probably not what you want
+drivers/phone_svn/modemctl/modemctl.c:55:27: warning: 'struct modemctl' declared inside parameter list
+  void (*modem_off)(struct modemctl *);
+                           ^
+drivers/phone_svn/modemctl/modemctl.c:56:29: warning: 'struct modemctl' declared inside parameter list
+  void (*modem_reset)(struct modemctl *);
+                             ^
+drivers/phone_svn/modemctl/modemctl.c:57:31: warning: 'struct modemctl' declared inside parameter list
+  void (*modem_boot_on)(struct modemctl *);
+                               ^
+drivers/phone_svn/modemctl/modemctl.c:58:32: warning: 'struct modemctl' declared inside parameter list
+  void (*modem_boot_off)(struct modemctl *);
+                                ^
+drivers/phone_svn/modemctl/modemctl.c:152:16: warning: initialization from incompatible pointer type [-Wincompatible-pointer-types]
+    .modem_on = xmm_on,
+                ^
+drivers/phone_svn/modemctl/modemctl.c:152:16: note: (near initialization for 'mdmctl_info[0].ops.modem_on')
+drivers/phone_svn/modemctl/modemctl.c:153:17: warning: initialization from incompatible pointer type [-Wincompatible-pointer-types]
+    .modem_off = xmm_off,
+                 ^
+drivers/phone_svn/modemctl/modemctl.c:153:17: note: (near initialization for 'mdmctl_info[0].ops.modem_off')
+drivers/phone_svn/modemctl/modemctl.c:154:19: warning: initialization from incompatible pointer type [-Wincompatible-pointer-types]
+    .modem_reset = xmm_reset,
+                   ^
+drivers/phone_svn/modemctl/modemctl.c:154:19: note: (near initialization for 'mdmctl_info[0].ops.modem_reset')
+drivers/phone_svn/modemctl/modemctl.c:155:21: warning: initialization from incompatible pointer type [-Wincompatible-pointer-types]
+    .modem_boot_on = xmm_boot,
+                     ^
+drivers/phone_svn/modemctl/modemctl.c:155:21: note: (near initialization for 'mdmctl_info[0].ops.modem_boot_on')
+drivers/phone_svn/modemctl/modemctl.c: In function 'modem_on':
+drivers/phone_svn/modemctl/modemctl.c:373:20: warning: passing argument 1 of 'mc->ops->modem_on' from incompatible pointer type [-Wincompatible-pointer-types]
+  mc->ops->modem_on(mc);
+                    ^
+drivers/phone_svn/modemctl/modemctl.c:373:20: note: expected 'struct modemctl *' but argument is of type 'struct modemctl *'
+drivers/phone_svn/modemctl/modemctl.c: In function 'modem_off':
+drivers/phone_svn/modemctl/modemctl.c:386:21: warning: passing argument 1 of 'mc->ops->modem_off' from incompatible pointer type [-Wincompatible-pointer-types]
+  mc->ops->modem_off(mc);
+                     ^
+drivers/phone_svn/modemctl/modemctl.c:386:21: note: expected 'struct modemctl *' but argument is of type 'struct modemctl *'
+drivers/phone_svn/modemctl/modemctl.c: In function 'modem_reset':
+drivers/phone_svn/modemctl/modemctl.c:399:23: warning: passing argument 1 of 'mc->ops->modem_reset' from incompatible pointer type [-Wincompatible-pointer-types]
+  mc->ops->modem_reset(mc);
+                       ^
+drivers/phone_svn/modemctl/modemctl.c:399:23: note: expected 'struct modemctl *' but argument is of type 'struct modemctl *'
+drivers/phone_svn/modemctl/modemctl.c: In function 'modem_boot_on':
+drivers/phone_svn/modemctl/modemctl.c:412:25: warning: passing argument 1 of 'mc->ops->modem_boot_on' from incompatible pointer type [-Wincompatible-pointer-types]
+  mc->ops->modem_boot_on(mc);
+                         ^
+drivers/phone_svn/modemctl/modemctl.c:412:25: note: expected 'struct modemctl *' but argument is of type 'struct modemctl *'
+drivers/phone_svn/modemctl/modemctl.c: In function 'modem_boot_off':
+drivers/phone_svn/modemctl/modemctl.c:425:26: warning: passing argument 1 of 'mc->ops->modem_boot_off' from incompatible pointer type [-Wincompatible-pointer-types]
+  mc->ops->modem_boot_off(mc);
+                          ^
+drivers/phone_svn/modemctl/modemctl.c:425:26: note: expected 'struct modemctl *' but argument is of type 'struct modemctl *'
+make[3]: *** [drivers/phone_svn/modemctl/modemctl.o] Fout 1
+make[2]: *** [drivers/phone_svn/modemctl] Fout 2
+make[1]: *** [drivers/phone_svn] Fout 2
+make: *** [drivers] Fout 2

@@ -947,8 +947,6 @@ static void mmci_start_data(struct mmci_host *host, struct mmc_data *data)
 static void
 mmci_start_command(struct mmci_host *host, struct mmc_command *cmd, u32 c)
 {
-	unsigned int count = 0;
-
 	void __iomem *base = host->base;
 
 	dev_dbg(mmc_dev(host->mmc), "op %02x arg %08x flags %08x\n",
@@ -1645,7 +1643,6 @@ static ssize_t mmci_sd_detection_cmd_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct mmci_host *host = dev_get_drvdata(dev);
-	unsigned int detect;
 	
 #ifdef SD_HW_NODETECTION
 	 if (host->mmc->card) {
@@ -1656,6 +1653,8 @@ static ssize_t mmci_sd_detection_cmd_show(struct device *dev,
                 return sprintf(buf, "Remove\n");
         }
 #else
+	unsigned int detect = 0;
+
 	if (host->plat->gpio_cd)
 		detect = gpio_get_value(host->plat->gpio_cd);
 	else {

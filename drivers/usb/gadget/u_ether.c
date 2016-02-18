@@ -833,13 +833,13 @@ int gether_setup_name(struct usb_gadget *g, u8 ethaddr[ETH_ALEN],
 		free_netdev(net);
 	} else {
 		the_dev = dev;
-
-		/* two kinds of host-initiated state changes:
-		 *  - iff DATA transfer is active, carrier is "on"
-		 *  - tx queueing enabled if open *and* carrier is "on"
-		 */
-		netif_carrier_off(net);
 	}
+
+	/* two kinds of host-initiated state changes:
+	 *  - iff DATA transfer is active, carrier is "on"
+	 *  - tx queueing enabled if open *and* carrier is "on"
+	 */
+	netif_carrier_off(net);
 
 	return status;
 }
