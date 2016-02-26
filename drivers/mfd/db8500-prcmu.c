@@ -3729,11 +3729,10 @@ struct prcmu_fops_register_data db8500_probe_data = {
  */
 static int __init late(void)
 {
-	extern int tracing_update_buffers(void);
 #ifdef ENABLE_FTRACE_BY_DEFAULT
+	extern int tracing_update_buffers(void);
 	extern int tracing_set_tracer(const char *buf);
 	int err;
-#endif
 	tracing_update_buffers();
 
 	trace_set_clr_event("irq", "irq_handler_entry", 1);
@@ -3747,7 +3746,6 @@ static int __init late(void)
 	trace_set_clr_event("power", "cpu_frequency", 1);
 	trace_set_clr_event("prcmu", NULL, 1);
 
-#ifdef ENABLE_FTRACE_BY_DEFAULT
 	err = tracing_set_tracer("function");
 	if (err)
 		pr_info("prcmu : unable to enable function trace\n");
