@@ -3042,6 +3042,8 @@ cfq_async_queue_prio(struct cfq_data *cfqd, int ioprio_class, int ioprio)
 	default:
 		BUG();
 	}
+
+	return NULL;
 }
 
 static struct cfq_queue *

@@ -4220,7 +4220,7 @@ static inline void schedule_debug(struct task_struct *prev)
 
 static void put_prev_task(struct rq *rq, struct task_struct *prev)
 {
-	if (prev->on_rq || rq->skip_clock_update < 0)
+	if (prev->on_rq || (rq->skip_clock_update < 0))
 		update_rq_clock(rq);
 	prev->sched_class->put_prev_task(rq, prev);
 }
@@ -4231,8 +4231,8 @@ static void put_prev_task(struct rq *rq, struct task_struct *prev)
 static inline struct task_struct *
 pick_next_task(struct rq *rq)
 {
-	const struct sched_class *class;
-	struct task_struct *p;
+	const struct sched_class *class=NULL;
+	struct task_struct *p=NULL;
 
 	/*
 	 * Optimization: we know that if all tasks are in
@@ -4240,17 +4240,21 @@ pick_next_task(struct rq *rq)
 	 */
 	if (likely(rq->nr_running == rq->cfs.nr_running)) {
 		p = fair_sched_class.pick_next_task(rq);
-		if (likely(p))
+		if (likely(p)) {
 			return p;
+		}
 	}
 
 	for_each_class(class) {
 		p = class->pick_next_task(rq);
-		if (p)
+		if (p) {
 			return p;
+		}
 	}
 
 	BUG(); /* the idle class will always have a runnable task */
+
+	return NULL;
 }
 
 #ifdef CONFIG_SAMSUNG_KERNEL_DEBUG
